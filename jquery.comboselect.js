@@ -62,8 +62,11 @@
     settings = jQuery.extend({
       sort: 'both',  // sort which sides? 'none'|'left'|'right'|'both'
       addremall : true,  // include the add/remove all buttons
+      updown : true,  // include the up/down buttons
       add_allbtn: ' &gt;&gt; ',   // label for the "add all" button
       rem_allbtn: ' &lt;&lt; ',    // label for the "remove all" button
+      upbtn: '&#x2191;',  // label for the "up" button
+      downbtn: '&#x2193;',  // label for the "down" button
       addbtn: ' &gt; ',// text of the "add" button
       rembtn: ' &lt; ',// text of the "remove" button
       cs_container: 'div', //  html tag to contain both comboselects
@@ -83,6 +86,10 @@
       var addID = selectID + "_add";
       var removeID = selectID + "_remove";
       
+      // ids for up and down buttons
+      var upID = selectID + "_up";
+      var downID = selectID + "_down";
+      
       // place to store markup for the combo box
       var combo = '';
       
@@ -95,12 +102,18 @@
       combo += '<select id="' + leftID + '" name="' + leftID + '" class="csleft" multiple="multiple">';
       combo += '</select>';
       combo += '<' + settings.btn_container + ' class="cs-buttons">';
+      if(settings.updown){
+        combo += '<input type="button" class="csup" id="' + upID + '" value="' + settings.upbtn + '" />';
+      }
       combo += '<input type="button" class="csadd" id="' + addID + '" value="' + settings.addbtn + '" />';
       if(settings.addremall){
         combo += '<input type="button" class="csadd" id="' + addID + '_all" value="' + settings.add_allbtn + '" />';
         combo += '<input type="button" class="csremove" id="' + removeID + '_all" value="' + settings.rem_allbtn + '" />';
       }
       combo += '<input type="button" class="csremove" id="' + removeID + '" value="' + settings.rembtn + '" />';
+      if(settings.updown){
+        combo += '<input type="button" class="csdown" id="' + downID + '" value="' + settings.downbtn + '" />';
+      }
       combo += '</' + settings.btn_container + '>';
       combo += '<select id="' + rightID + '" name="' + rightID + '" class="csright" multiple="multiple">';
       combo += '</select>';
@@ -154,9 +167,63 @@
         removeSelections(leftSelect, rightSelect, originalSelect);
         sortSelects(leftSelect, rightSelect, originalSelect,'left');
       });
+
+      // bind up and down buttons
+      $("#" + upID).click(function(){
+        moveSelectionsUp(rightSelect, originalSelect);
+      });
+      
+      $("#" + downID).click(function(){
+        moveSelectionsDown(rightSelect, originalSelect);
+      });
       
     });
-    
+
+    function moveSelectionsUp(select, original) {
+      var selected = select.find(":selected");
+      selected.each(function() {
+        var sibling = this.previousElementSibling;
+        if (!sibling || sibling.selected) {
+          return;
+        }
+
+        this.parentNode.insertBefore(this, sibling);
+
+        var originalNode = original.find('option[value="' + $(this).val() + '"]');
+        var prevSelected = originalNode.prevAll(":selected");
+        originalNode.insertBefore(prevSelected[0]);
+      });
+    }
+
+    function moveSelectionsDown(select, original) {
+      var selected = select.find(":selected");
+      for (var i = selected.length - 1; i >= 0; i--) {
+        var node = selected.get(i);
+        var sibling = node.nextElementSibling;
+        if (!sibling || sibling.selected) {
+          return;
+        }
+
+        sibling = sibling.nextElementSibling;
+
+        if (sibling) {
+          $(node).insertBefore(sibling);
+        } else {
+          select.append(node);
+        }
+
+        var originalNode = original.find('option[value="' + $(node).val() + '"]');
+        var nextSelected = originalNode.nextAll(":selected");
+        var nextNode = nextSelected.get(0);
+        nextNode = nextNode.nextElementSibling;
+        if (nextNode) {
+          originalNode.insertBefore(nextNode);
+        } else {
+          $(original).append(originalNode);
+        }
+      }
+    }
+
     function addSelections(left, right, original){
       var selected = left.find(":selected");
       right.append(selected);
